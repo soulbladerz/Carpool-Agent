@@ -12,10 +12,10 @@ export default function HomePage() {
         </p>
         <div className="flex justify-center gap-3 pt-4">
           <Link href="/signup?role=owner" className="rounded bg-brand text-white px-4 py-2 hover:bg-brand-dark">
-            I'm an owner
+            I&apos;m an owner
           </Link>
           <Link href="/signup?role=agent" className="rounded border border-brand text-brand px-4 py-2 hover:bg-brand/5">
-            I'm an agent
+            I&apos;m an agent
           </Link>
         </div>
       </section>
