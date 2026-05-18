@@ -4,7 +4,7 @@ import CarForm from "../car-form";
 
 export default async function EditCarPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, profile } = await requireRole("owner");
+  const { supabase, profile } = await requireRole(["member", "admin"]);
   const { data: car } = await supabase
     .from("cars")
     .select("*, service_areas(area)")

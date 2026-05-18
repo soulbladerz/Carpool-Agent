@@ -6,7 +6,7 @@ import SignOutButton from "@/components/sign-out-button";
 
 export const metadata: Metadata = {
   title: "Carpool Agent",
-  description: "Marketplace connecting car owners and rental agents."
+  description: "Member marketplace for car owners and rental agents."
 };
 
 export const viewport: Viewport = {
@@ -29,6 +29,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     role = profile?.role ?? null;
   }
 
+  const isMember = role === "member" || role === "admin";
+
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
@@ -36,8 +38,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
             <Link href="/" className="font-semibold text-lg">Carpool Agent</Link>
             <nav className="flex items-center gap-4 text-sm">
-              {role === "owner" && <Link href="/owner">Owner</Link>}
-              {role === "agent" && <Link href="/agent">Browse cars</Link>}
+              {isMember && (
+                <>
+                  <Link href="/member">Dashboard</Link>
+                  <Link href="/member/marketplace">Marketplace</Link>
+                  <Link href="/member/requests">Requests</Link>
+                  <Link href="/member/bookings">Bookings</Link>
+                </>
+              )}
               {role === "admin" && <Link href="/admin">Admin</Link>}
               {user ? (
                 <SignOutButton />

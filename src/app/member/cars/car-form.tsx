@@ -100,7 +100,7 @@ export default function CarForm({ initial }: { initial?: FormState }) {
         .insert(areas.map((area) => ({ car_id: carId, area })));
     }
 
-    router.push("/owner");
+    router.push("/member/cars");
     router.refresh();
   }
 

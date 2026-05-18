@@ -28,9 +28,7 @@ export default function LoginPage() {
       .select("role")
       .eq("id", data.user.id)
       .single();
-    const dest =
-      profile?.role === "owner" ? "/owner" : profile?.role === "admin" ? "/admin" : "/agent";
-    router.push(dest);
+    router.push(profile?.role === "admin" ? "/admin" : "/member");
     router.refresh();
   }
 

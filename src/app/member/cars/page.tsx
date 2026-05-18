@@ -2,8 +2,8 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import CarStatusToggle from "./car-status-toggle";
 
-export default async function OwnerDashboard() {
-  const { supabase, profile } = await requireRole("owner");
+export default async function MyCarsPage() {
+  const { supabase, profile } = await requireRole(["member", "admin"]);
 
   const { data: cars } = await supabase
     .from("cars")
@@ -18,11 +18,11 @@ export default async function OwnerDashboard() {
           <h1 className="text-2xl font-semibold">My cars</h1>
           {!profile.is_verified && (
             <p className="text-amber-700 text-sm mt-1">
-              Your account is pending admin verification. Listings are hidden from agents until approved.
+              Your account is pending admin verification. Listings are hidden from other members until approved.
             </p>
           )}
         </div>
-        <Link href="/owner/new" className="rounded bg-brand text-white px-4 py-2 hover:bg-brand-dark">
+        <Link href="/member/cars/new" className="rounded bg-brand text-white px-4 py-2 hover:bg-brand-dark">
           + Add car
         </Link>
       </div>
@@ -53,7 +53,7 @@ export default async function OwnerDashboard() {
                   : <span className="italic text-slate-400">none</span>}
               </div>
               <div className="mt-3 flex gap-3 text-sm">
-                <Link href={`/owner/${c.id}`} className="text-brand hover:underline">Edit</Link>
+                <Link href={`/member/cars/${c.id}`} className="text-brand hover:underline">Edit</Link>
               </div>
             </div>
           ))}
