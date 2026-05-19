@@ -47,14 +47,28 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
     : { data: null };
   const myCars = (carsRes.data ?? []) as any[];
 
+  // For a direct request (car_id set), only the specifically requested car
+  // may be offered. Honors the requester's contract: "I want this car."
+  const myCarsForOffer = req.car_id ? myCars.filter((c) => c.id === req.car_id) : myCars;
+
   const alreadyOffered = new Set(offers.filter((o) => o.offerer_id === profile.id).map((o) => o.car_id));
-  const offerableCars = myCars.filter((c) => !alreadyOffered.has(c.id));
+  const offerableCars = myCarsForOffer.filter((c) => !alreadyOffered.has(c.id));
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Request</h1>
-        <span className="text-xs rounded-full px-2 py-1 bg-slate-200 text-slate-700">{req.status}</span>
+        <div className="flex items-center gap-2">
+          <span
+            className={
+              "text-xs rounded-full px-2 py-1 " +
+              (req.car_id ? "bg-violet-100 text-violet-800" : "bg-slate-100 text-slate-700")
+            }
+          >
+            {req.car_id ? "Direct" : "Open"}
+          </span>
+          <span className="text-xs rounded-full px-2 py-1 bg-slate-200 text-slate-700">{req.status}</span>
+        </div>
       </div>
 
       <section className="bg-white border border-slate-200 rounded-lg p-5 space-y-2 text-sm">
