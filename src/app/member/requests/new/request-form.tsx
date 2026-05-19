@@ -41,41 +41,26 @@ export default function RequestForm({
       return;
     }
 
-    const { data: req, error: reqError } = await supabase
-      .from("requests")
-      .insert({
-        requester_id: user.id,
-        car_id: carId,
-        car_type: carType || null,
-        pickup_area: pickupArea.trim(),
-        start_at: new Date(startAt).toISOString(),
-        end_at: new Date(endAt).toISOString(),
-        passenger_count: Number(passengers),
-        max_daily_rate: maxRate === "" ? null : Number(maxRate),
-        notes: notes.trim() || null
-      })
-      .select("id")
-      .single();
-
-    if (reqError || !req) {
-      setError(reqError?.message ?? "Failed to create request");
-      setLoading(false);
-      return;
-    }
-
-    const { error: privError } = await supabase.from("request_private").insert({
-      request_id: req.id,
-      customer_name: customerName.trim(),
-      customer_phone: customerPhone.trim(),
-      customer_notes: customerNotes.trim() || null
+    const { data: requestId, error: rpcError } = await supabase.rpc("create_request", {
+      p_car_id: carId,
+      p_car_type: carType || null,
+      p_pickup_area: pickupArea.trim(),
+      p_start_at: new Date(startAt).toISOString(),
+      p_end_at: new Date(endAt).toISOString(),
+      p_passenger_count: Number(passengers),
+      p_max_daily_rate: maxRate === "" ? null : Number(maxRate),
+      p_notes: notes.trim() || null,
+      p_customer_name: customerName.trim(),
+      p_customer_phone: customerPhone.trim(),
+      p_customer_notes: customerNotes.trim() || null
     });
-    if (privError) {
-      setError(privError.message);
+    if (rpcError || !requestId) {
+      setError(rpcError?.message ?? "Failed to create request");
       setLoading(false);
       return;
     }
 
-    router.push(`/member/requests/${req.id}`);
+    router.push(`/member/requests/${requestId}`);
     router.refresh();
   }
 

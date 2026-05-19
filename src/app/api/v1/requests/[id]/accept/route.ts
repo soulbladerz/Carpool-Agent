@@ -1,9 +1,10 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { json, requireApiKey } from "../../../_lib";
+import { json, parseJsonBody, requireApiKey } from "../../../_lib";
+import { acceptOfferSchema } from "../../../_schemas";
 import { emit } from "@/lib/webhooks/emit";
 
 // POST /api/v1/requests/[id]/accept
-// body: { offer_id, acting_email }  (acting_email must be the request's requester)
+// body: { offer_id, acting_email }
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -11,10 +12,10 @@ export async function POST(
   const denied = requireApiKey(request);
   if (denied) return denied;
   const { id: requestId } = await params;
-  const body = await request.json().catch(() => null);
-  if (!body?.offer_id || !body?.acting_email) {
-    return json({ error: "offer_id and acting_email required" }, { status: 400 });
-  }
+
+  const parsed = await parseJsonBody(request, acceptOfferSchema);
+  if (parsed.error) return parsed.error;
+  const body = parsed.data;
 
   const admin = createSupabaseAdminClient();
   const { data: actor } = await admin

@@ -17,8 +17,12 @@ export async function GET(
       "service_areas(area), owner:profiles!cars_owner_id_fkey(full_name, email, phone, is_verified)"
     )
     .eq("id", id)
+    .eq("status", "available")
     .single();
 
-  if (error) return json({ error: error.message }, { status: 404 });
+  if (error || !data) return json({ error: "not found" }, { status: 404 });
+  if (!(data as any).owner?.is_verified) {
+    return json({ error: "not found" }, { status: 404 });
+  }
   return json({ car: data });
 }

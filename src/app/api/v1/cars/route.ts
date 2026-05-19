@@ -1,17 +1,17 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { json, requireApiKey } from "../_lib";
+import { json, parseSearchParams, requireApiKey } from "../_lib";
+import { carsQuerySchema } from "../_schemas";
 
 // GET /api/v1/cars?area=KL&type=Sedan&max=200
 // Returns all available cars whose owner is verified.
-// Read-only endpoint for the parent system to integrate later.
 export async function GET(request: Request) {
   const denied = requireApiKey(request);
   if (denied) return denied;
 
   const url = new URL(request.url);
-  const area = url.searchParams.get("area");
-  const type = url.searchParams.get("type");
-  const max = url.searchParams.get("max");
+  const parsed = parseSearchParams(url, carsQuerySchema);
+  if (parsed.error) return parsed.error;
+  const { area, type, max } = parsed.data;
 
   const admin = createSupabaseAdminClient();
   let query = admin
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     .eq("status", "available");
 
   if (type) query = query.eq("car_type", type);
-  if (max) query = query.lte("daily_rate", Number(max));
+  if (max !== undefined) query = query.lte("daily_rate", max);
 
   const { data, error } = await query;
   if (error) return json({ error: error.message }, { status: 500 });

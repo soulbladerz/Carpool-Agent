@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { json, requireApiKey } from "../_lib";
+import { json, parseJsonBody, requireApiKey } from "../_lib";
+import { webhookCreateSchema } from "../_schemas";
 
 // GET    /api/v1/webhooks       — list active subscriptions
 // POST   /api/v1/webhooks       — body: { url, secret, event_types?: string[] }
@@ -20,17 +21,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const denied = requireApiKey(request);
   if (denied) return denied;
-  const body = await request.json().catch(() => null);
-  if (!body?.url || !body?.secret) {
-    return json({ error: "url and secret required" }, { status: 400 });
-  }
+
+  const parsed = await parseJsonBody(request, webhookCreateSchema);
+  if (parsed.error) return parsed.error;
+
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("webhook_endpoints")
     .insert({
-      url: body.url,
-      secret: body.secret,
-      event_types: Array.isArray(body.event_types) ? body.event_types : []
+      url: parsed.data.url,
+      secret: parsed.data.secret,
+      event_types: parsed.data.event_types ?? []
     })
     .select("id")
     .single();
