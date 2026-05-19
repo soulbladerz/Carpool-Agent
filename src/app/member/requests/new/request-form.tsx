@@ -41,6 +41,24 @@ export default function RequestForm({
       return;
     }
 
+    const startDate = new Date(startAt);
+    const endDate = new Date(endAt);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setError("Please pick both a start and end date/time.");
+      setLoading(false);
+      return;
+    }
+    if (endDate <= startDate) {
+      setError("End time must be after start time.");
+      setLoading(false);
+      return;
+    }
+    if (startDate < new Date()) {
+      setError("Start time must be in the future.");
+      setLoading(false);
+      return;
+    }
+
     const { data: requestId, error: rpcError } = await supabase.rpc("create_request", {
       p_car_id: carId,
       p_car_type: carType || null,
