@@ -44,7 +44,11 @@ export default function OfferForm({ requestId, cars }: { requestId: string; cars
     });
     setLoading(false);
     if (insertError) {
-      setError(insertError.message);
+      const raw = insertError.message;
+      const friendly = raw.includes("car_unavailable_in_window")
+        ? "This car already has a booking that overlaps the request's window. You can't offer it for this trip."
+        : raw;
+      setError(friendly);
       return;
     }
     router.refresh();
@@ -75,7 +79,7 @@ export default function OfferForm({ requestId, cars }: { requestId: string; cars
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block font-medium mb-1">Daily rate</label>
+          <label className="block font-medium mb-1">Daily rate (RM)</label>
           <input
             type="number"
             value={rate}
@@ -85,7 +89,7 @@ export default function OfferForm({ requestId, cars }: { requestId: string; cars
           />
         </div>
         <div>
-          <label className="block font-medium mb-1">Deposit</label>
+          <label className="block font-medium mb-1">Deposit (RM)</label>
           <input
             type="number"
             value={deposit}

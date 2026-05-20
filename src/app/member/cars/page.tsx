@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 import CarStatusToggle from "./car-status-toggle";
 
 export default async function MyCarsPage() {
@@ -43,8 +44,8 @@ export default async function MyCarsPage() {
                 <CarStatusToggle carId={c.id} status={c.status} />
               </div>
               <dl className="mt-3 text-sm grid grid-cols-2 gap-y-1">
-                <dt className="text-slate-500">Daily rate</dt><dd>${Number(c.daily_rate).toFixed(2)}</dd>
-                <dt className="text-slate-500">Deposit</dt><dd>${Number(c.deposit).toFixed(2)}</dd>
+                <dt className="text-slate-500">Daily rate</dt><dd>{formatMYR(c.daily_rate)}</dd>
+                <dt className="text-slate-500">Deposit</dt><dd>{formatMYR(c.deposit)}</dd>
               </dl>
               <div className="mt-3 text-sm">
                 <span className="text-slate-500">Service areas: </span>

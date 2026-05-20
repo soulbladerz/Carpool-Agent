@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 
 type SearchParams = Promise<{ area?: string; type?: string; max?: string }>;
 
@@ -29,6 +30,22 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
     );
   }
   filtered = filtered.filter((c: any) => c.owner?.is_verified);
+
+  // Decorate cars with their live booking state. A car may be flagged
+  // `available` but in fact mid-rental — hide those.
+  const carIds = filtered.map((c: any) => c.id);
+  let rentedNowIds = new Set<string>();
+  if (carIds.length) {
+    const { data: activeBookings } = await supabase
+      .from("bookings")
+      .select("car_id")
+      .in("car_id", carIds)
+      .in("status", ["confirmed", "in_progress"])
+      .lte("start_at", new Date().toISOString())
+      .gte("end_at", new Date().toISOString());
+    rentedNowIds = new Set((activeBookings ?? []).map((b: any) => b.car_id));
+  }
+  filtered = filtered.filter((c: any) => !rentedNowIds.has(c.id));
 
   return (
     <div className="space-y-6">
@@ -82,8 +99,8 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
                 <p className="text-sm text-slate-500">{c.car_type}</p>
 
                 <dl className="mt-3 text-sm grid grid-cols-2 gap-y-1">
-                  <dt className="text-slate-500">Daily rate</dt><dd>${Number(c.daily_rate).toFixed(2)}</dd>
-                  <dt className="text-slate-500">Deposit</dt><dd>${Number(c.deposit).toFixed(2)}</dd>
+                  <dt className="text-slate-500">Daily rate</dt><dd>{formatMYR(c.daily_rate)}</dd>
+                  <dt className="text-slate-500">Deposit</dt><dd>{formatMYR(c.deposit)}</dd>
                 </dl>
                 <div className="mt-2 text-xs text-slate-500">
                   Service areas: {(c.service_areas ?? []).map((s: any) => s.area).join(", ") || "—"}

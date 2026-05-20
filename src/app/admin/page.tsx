@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 import VerifyButton from "./verify-button";
 
 export default async function AdminPage() {
@@ -83,7 +84,7 @@ export default async function AdminPage() {
                 <tr key={c.id} className="border-t border-slate-200">
                   <td className="p-3">{c.make} {c.model}</td>
                   <td className="p-3">{c.owner?.email}</td>
-                  <td className="p-3">${Number(c.daily_rate).toFixed(2)}</td>
+                  <td className="p-3">{formatMYR(c.daily_rate)}</td>
                   <td className="p-3">{c.status}</td>
                 </tr>
               ))}

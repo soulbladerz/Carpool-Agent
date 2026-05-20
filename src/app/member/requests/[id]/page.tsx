@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 import OfferActions from "./offer-actions";
 import OfferForm from "./offer-form";
 import CancelRequest from "./cancel-request";
@@ -80,7 +81,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
           <dt className="text-slate-500">End</dt><dd>{new Date(req.end_at).toLocaleString()}</dd>
           <dt className="text-slate-500">Passengers</dt><dd>{req.passenger_count}</dd>
           <dt className="text-slate-500">Max rate</dt>
-          <dd>{req.max_daily_rate != null ? `$${Number(req.max_daily_rate).toFixed(2)}/day` : "—"}</dd>
+          <dd>{req.max_daily_rate != null ? `${formatMYR(req.max_daily_rate)}/day` : "—"}</dd>
           <dt className="text-slate-500">Posted by</dt><dd>{req.requester?.full_name ?? "—"}</dd>
         </dl>
         {req.notes && <p className="pt-2 border-t border-slate-200 text-slate-600">{req.notes}</p>}
@@ -125,8 +126,8 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
                   <span className="text-xs rounded-full px-2 py-1 bg-slate-200 text-slate-700">{o.status}</span>
                 </div>
                 <dl className="grid grid-cols-2 gap-y-1">
-                  <dt className="text-slate-500">Daily rate</dt><dd>${Number(o.daily_rate).toFixed(2)}</dd>
-                  <dt className="text-slate-500">Deposit</dt><dd>${Number(o.deposit).toFixed(2)}</dd>
+                  <dt className="text-slate-500">Daily rate</dt><dd>{formatMYR(o.daily_rate)}</dd>
+                  <dt className="text-slate-500">Deposit</dt><dd>{formatMYR(o.deposit)}</dd>
                 </dl>
                 {o.notes && <p className="text-slate-600">{o.notes}</p>}
                 <OfferActions

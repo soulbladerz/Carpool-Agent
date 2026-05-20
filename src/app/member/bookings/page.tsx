@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
   pending_owner_confirmation: "Awaiting owner",
@@ -73,7 +74,7 @@ export default async function BookingsPage() {
                       {new Date(b.start_at).toLocaleString()}<br />
                       {new Date(b.end_at).toLocaleString()}
                     </td>
-                    <td className="p-3">${Number(b.daily_rate).toFixed(2)}</td>
+                    <td className="p-3">{formatMYR(b.daily_rate)}</td>
                     <td className="p-3">
                       <span className={`text-xs rounded-full px-2 py-1 ${STATUS_COLOR[b.status]}`}>
                         {STATUS_LABEL[b.status]}

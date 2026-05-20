@@ -30,7 +30,10 @@ export default function BookingActions({
     const { error } = await supabase.rpc(fn, args);
     setLoading(null);
     if (error) {
-      setError(error.message);
+      const friendly = error.message.includes("car_unavailable_in_window")
+        ? "Your car was confirmed for a conflicting booking in the meantime. This one can't be confirmed."
+        : error.message;
+      setError(friendly);
       return;
     }
     router.refresh();

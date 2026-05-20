@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 import BookingActions from "./booking-actions";
 
 export default async function BookingDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -53,8 +54,8 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
           <dt className="text-slate-500">Passengers</dt><dd>{booking.passenger_count}</dd>
           <dt className="text-slate-500">Start</dt><dd>{new Date(booking.start_at).toLocaleString()}</dd>
           <dt className="text-slate-500">End</dt><dd>{new Date(booking.end_at).toLocaleString()}</dd>
-          <dt className="text-slate-500">Daily rate</dt><dd>${Number(booking.daily_rate).toFixed(2)}</dd>
-          <dt className="text-slate-500">Deposit</dt><dd>${Number(booking.deposit).toFixed(2)}</dd>
+          <dt className="text-slate-500">Daily rate</dt><dd>{formatMYR(booking.daily_rate)}</dd>
+          <dt className="text-slate-500">Deposit</dt><dd>{formatMYR(booking.deposit)}</dd>
         </dl>
       </section>
 

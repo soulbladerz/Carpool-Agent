@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 
 type SearchParams = Promise<{ area?: string; type?: string }>;
 
@@ -70,7 +71,7 @@ export default async function OpenRequestsMarketplace({ searchParams }: { search
               </div>
               {r.max_daily_rate != null && (
                 <p className="text-sm text-slate-600 mt-2">
-                  Max rate: ${Number(r.max_daily_rate).toFixed(2)}/day
+                  Max rate: {formatMYR(r.max_daily_rate)}/day
                 </p>
               )}
               {r.notes && <p className="text-sm text-slate-600 mt-2">{r.notes}</p>}

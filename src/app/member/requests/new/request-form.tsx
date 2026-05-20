@@ -73,7 +73,11 @@ export default function RequestForm({
       p_customer_notes: customerNotes.trim() || null
     });
     if (rpcError || !requestId) {
-      setError(rpcError?.message ?? "Failed to create request");
+      const raw = rpcError?.message ?? "Failed to create request";
+      const friendly = raw.includes("car_unavailable_in_window")
+        ? "This car is already booked for some or all of your selected window. Pick a different date range or a different car."
+        : raw;
+      setError(friendly);
       setLoading(false);
       return;
     }
@@ -121,7 +125,7 @@ export default function RequestForm({
             required
           />
           <Field
-            label="Max daily rate (optional)"
+            label="Max daily rate (RM, optional)"
             type="number"
             value={String(maxRate)}
             onChange={(v) => setMaxRate(v === "" ? "" : Number(v))}

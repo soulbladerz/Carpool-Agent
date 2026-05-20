@@ -127,14 +127,14 @@ export default function CarForm({ initial }: { initial?: FormState }) {
         </div>
         <Field label="Plate (optional)" value={form.plate} onChange={(v) => update("plate", v)} />
         <Field
-          label="Daily rate"
+          label="Daily rate (RM)"
           type="number"
           value={String(form.daily_rate)}
           onChange={(v) => update("daily_rate", v === "" ? "" : Number(v))}
           required
         />
         <Field
-          label="Deposit"
+          label="Deposit (RM)"
           type="number"
           value={String(form.deposit)}
           onChange={(v) => update("deposit", v === "" ? "" : Number(v))}

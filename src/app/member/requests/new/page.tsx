@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { formatMYR } from "@/lib/format";
 import RequestForm from "./request-form";
 
 type SearchParams = Promise<{ car_id?: string }>;
@@ -25,7 +26,7 @@ export default async function NewRequestPage({ searchParams }: { searchParams: S
       {targetCar && (
         <div className="mb-4 text-sm bg-slate-50 border border-slate-200 rounded p-3">
           Direct request for <strong>{targetCar.make} {targetCar.model}</strong> &middot;{" "}
-          {targetCar.car_type} &middot; ${Number(targetCar.daily_rate).toFixed(2)}/day
+          {targetCar.car_type} &middot; {formatMYR(targetCar.daily_rate)}/day
         </div>
       )}
       <RequestForm
