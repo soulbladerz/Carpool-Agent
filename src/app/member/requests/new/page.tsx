@@ -2,11 +2,23 @@ import { requireRole } from "@/lib/auth";
 import { formatMYR } from "@/lib/format";
 import RequestForm from "./request-form";
 
-type SearchParams = Promise<{ car_id?: string }>;
+type SearchParams = Promise<{ car_id?: string; from?: string; to?: string }>;
+
+// datetime-local needs "YYYY-MM-DDTHH:mm" in local time. Strip Z/offset and seconds.
+function toLocalInput(iso: string | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
 
 export default async function NewRequestPage({ searchParams }: { searchParams: SearchParams }) {
   const { supabase } = await requireRole(["member", "admin"]);
-  const { car_id } = await searchParams;
+  const { car_id, from, to } = await searchParams;
 
   let targetCar = null;
   if (car_id) {
@@ -33,6 +45,8 @@ export default async function NewRequestPage({ searchParams }: { searchParams: S
         carId={targetCar?.id ?? null}
         defaultCarType={targetCar?.car_type ?? ""}
         defaultArea={targetCar?.service_areas?.[0]?.area ?? ""}
+        defaultStartAt={toLocalInput(from)}
+        defaultEndAt={toLocalInput(to)}
       />
     </div>
   );

@@ -2,11 +2,28 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { formatMYR } from "@/lib/format";
 
-type SearchParams = Promise<{ area?: string; type?: string; max?: string }>;
+type SearchParams = Promise<{ area?: string; type?: string; max?: string; from?: string; to?: string }>;
 
 export default async function Marketplace({ searchParams }: { searchParams: SearchParams }) {
   const { supabase, profile } = await requireRole(["member", "admin"]);
-  const { area, type, max } = await searchParams;
+  const { area, type, max, from, to } = await searchParams;
+
+  // Parse window params. If parse fails or end <= start, treat as no window.
+  let windowStart: Date | null = null;
+  let windowEnd: Date | null = null;
+  let windowError: string | null = null;
+  if (from || to) {
+    const fs = from ? new Date(from) : null;
+    const fe = to ? new Date(to) : null;
+    if (!fs || !fe || Number.isNaN(fs.getTime()) || Number.isNaN(fe.getTime())) {
+      windowError = "Pick both a from and to date.";
+    } else if (fe <= fs) {
+      windowError = "End date must be after the start date.";
+    } else {
+      windowStart = fs;
+      windowEnd = fe;
+    }
+  }
 
   let query = supabase
     .from("cars")
@@ -31,21 +48,33 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
   }
   filtered = filtered.filter((c: any) => c.owner?.is_verified);
 
-  // Decorate cars with their live booking state. A car may be flagged
-  // `available` but in fact mid-rental — hide those.
   const carIds = filtered.map((c: any) => c.id);
-  let rentedNowIds = new Set<string>();
+
+  // Two filters:
+  //   1. Always hide cars in the middle of a rental right now.
+  //   2. If a window was given, hide any car booked during that window.
+  let blockedIds = new Set<string>();
   if (carIds.length) {
-    const { data: activeBookings } = await supabase
-      .from("bookings")
-      .select("car_id")
-      .in("car_id", carIds)
-      .in("status", ["confirmed", "in_progress"])
-      .lte("start_at", new Date().toISOString())
-      .gte("end_at", new Date().toISOString());
-    rentedNowIds = new Set((activeBookings ?? []).map((b: any) => b.car_id));
+    if (windowStart && windowEnd) {
+      const { data: blocked } = await supabase.rpc("cars_blocked_in_window", {
+        p_car_ids: carIds,
+        p_start_at: windowStart.toISOString(),
+        p_end_at: windowEnd.toISOString()
+      });
+      blockedIds = new Set((blocked ?? []).map((b: any) => b.car_id));
+    } else {
+      const nowIso = new Date().toISOString();
+      const { data: activeBookings } = await supabase
+        .from("bookings")
+        .select("car_id")
+        .in("car_id", carIds)
+        .in("status", ["confirmed", "in_progress"])
+        .lte("start_at", nowIso)
+        .gte("end_at", nowIso);
+      blockedIds = new Set((activeBookings ?? []).map((b: any) => b.car_id));
+    }
   }
-  filtered = filtered.filter((c: any) => !rentedNowIds.has(c.id));
+  filtered = filtered.filter((c: any) => !blockedIds.has(c.id));
 
   return (
     <div className="space-y-6">
@@ -56,7 +85,7 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
         </Link>
       </div>
 
-      <form className="grid sm:grid-cols-4 gap-2 bg-white p-4 rounded-lg border border-slate-200">
+      <form className="grid sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-white p-4 rounded-lg border border-slate-200">
         <input
           name="area"
           placeholder="Area (e.g. KL)"
@@ -76,12 +105,37 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
         <input
           name="max"
           type="number"
-          placeholder="Max daily rate"
+          placeholder="Max rate (RM)"
           defaultValue={max ?? ""}
           className="rounded border border-slate-300 px-3 py-2 text-sm"
         />
+        <div className="flex flex-col">
+          <label className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Available from</label>
+          <input
+            name="from"
+            type="datetime-local"
+            defaultValue={from ?? ""}
+            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col">
+          <label className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Until</label>
+          <input
+            name="to"
+            type="datetime-local"
+            defaultValue={to ?? ""}
+            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+          />
+        </div>
         <button className="rounded bg-brand text-white text-sm hover:bg-brand-dark">Filter</button>
       </form>
+
+      {windowError && <p className="text-amber-700 text-sm">{windowError}</p>}
+      {windowStart && windowEnd && (
+        <p className="text-xs text-slate-500">
+          Showing cars free between {windowStart.toLocaleString()} and {windowEnd.toLocaleString()}.
+        </p>
+      )}
 
       {error && <p className="text-red-600 text-sm">{error.message}</p>}
 
@@ -113,7 +167,12 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
                     <span className="block text-center text-xs text-slate-500 py-2">Your car</span>
                   ) : (
                     <Link
-                      href={`/member/requests/new?car_id=${c.id}`}
+                      href={
+                        `/member/requests/new?car_id=${c.id}` +
+                        (windowStart && windowEnd
+                          ? `&from=${encodeURIComponent(windowStart.toISOString())}&to=${encodeURIComponent(windowEnd.toISOString())}`
+                          : "")
+                      }
                       className="block w-full text-center rounded bg-brand text-white text-sm py-2 hover:bg-brand-dark"
                     >
                       Request this car

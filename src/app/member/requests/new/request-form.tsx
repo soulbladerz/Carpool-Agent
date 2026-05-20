@@ -9,17 +9,21 @@ const CAR_TYPES = ["Sedan", "SUV", "Hatchback", "Van", "Pickup", "Luxury", "Othe
 export default function RequestForm({
   carId,
   defaultCarType,
-  defaultArea
+  defaultArea,
+  defaultStartAt = "",
+  defaultEndAt = ""
 }: {
   carId: string | null;
   defaultCarType: string;
   defaultArea: string;
+  defaultStartAt?: string;
+  defaultEndAt?: string;
 }) {
   const router = useRouter();
   const [carType, setCarType] = useState(defaultCarType || "Sedan");
   const [pickupArea, setPickupArea] = useState(defaultArea);
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
+  const [startAt, setStartAt] = useState(defaultStartAt);
+  const [endAt, setEndAt] = useState(defaultEndAt);
   const [passengers, setPassengers] = useState<number | "">("");
   const [maxRate, setMaxRate] = useState<number | "">("");
   const [notes, setNotes] = useState("");
