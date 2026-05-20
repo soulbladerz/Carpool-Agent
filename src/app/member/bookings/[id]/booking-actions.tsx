@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { emitClientEvent, type WebhookEvent } from "@/lib/webhooks/client";
+
+const EVENT_FOR_FN: Record<string, WebhookEvent> = {
+  confirm_booking:  "booking.confirmed",
+  start_booking:    "booking.started",
+  complete_booking: "booking.completed",
+  cancel_booking:   "booking.cancelled"
+};
 
 export default function BookingActions({
   bookingId,
@@ -36,6 +44,10 @@ export default function BookingActions({
       setError(friendly);
       return;
     }
+    await emitClientEvent(EVENT_FOR_FN[fn], {
+      booking_id: bookingId,
+      ...(extra ?? {})
+    });
     router.refresh();
   }
 

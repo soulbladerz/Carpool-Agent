@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { emitClientEvent } from "@/lib/webhooks/client";
 
 export default function OfferActions({
   offerId,
@@ -29,9 +30,15 @@ export default function OfferActions({
       setError(error.message);
       return;
     }
+    // accept_offer returns the new booking id; reject/withdraw return void.
     if (fn === "accept_offer" && data) {
+      await emitClientEvent("offer.accepted", { offer_id: offerId, booking_id: data });
+      await emitClientEvent("booking.created", { booking_id: data, offer_id: offerId });
       router.push(`/member/bookings/${data}`);
       return;
+    }
+    if (fn === "reject_offer") {
+      await emitClientEvent("offer.rejected", { offer_id: offerId });
     }
     router.refresh();
   }

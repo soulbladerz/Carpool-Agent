@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { emitClientEvent } from "@/lib/webhooks/client";
 
 type OfferableCar = {
   id: string;
@@ -34,14 +35,18 @@ export default function OfferForm({ requestId, cars }: { requestId: string; cars
       setLoading(false);
       return;
     }
-    const { error: insertError } = await supabase.from("offers").insert({
-      request_id: requestId,
-      car_id: carId,
-      offerer_id: user.id,
-      daily_rate: Number(rate),
-      deposit: Number(deposit),
-      notes: notes.trim() || null
-    });
+    const { data: created, error: insertError } = await supabase
+      .from("offers")
+      .insert({
+        request_id: requestId,
+        car_id: carId,
+        offerer_id: user.id,
+        daily_rate: Number(rate),
+        deposit: Number(deposit),
+        notes: notes.trim() || null
+      })
+      .select("id")
+      .single();
     setLoading(false);
     if (insertError) {
       const raw = insertError.message;
@@ -50,6 +55,13 @@ export default function OfferForm({ requestId, cars }: { requestId: string; cars
         : raw;
       setError(friendly);
       return;
+    }
+    if (created?.id) {
+      await emitClientEvent("offer.created", {
+        offer_id: created.id,
+        request_id: requestId,
+        car_id: carId
+      });
     }
     router.refresh();
   }

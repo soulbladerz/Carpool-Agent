@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { emitClientEvent } from "@/lib/webhooks/client";
 
 const CAR_TYPES = ["Sedan", "SUV", "Hatchback", "Van", "Pickup", "Luxury", "Other"];
 
@@ -85,6 +86,12 @@ export default function RequestForm({
       setLoading(false);
       return;
     }
+
+    await emitClientEvent("request.created", {
+      request_id: requestId,
+      is_direct: carId != null,
+      car_id: carId
+    });
 
     router.push(`/member/requests/${requestId}`);
     router.refresh();

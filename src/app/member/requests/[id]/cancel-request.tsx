@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { emitClientEvent } from "@/lib/webhooks/client";
 
 export default function CancelRequest({ requestId }: { requestId: string }) {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function CancelRequest({ requestId }: { requestId: string }) {
       setError(error.message);
       return;
     }
+    await emitClientEvent("request.cancelled", { request_id: requestId });
     router.refresh();
   }
 
