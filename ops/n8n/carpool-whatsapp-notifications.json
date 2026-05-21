@@ -1,0 +1,933 @@
+{
+  "name": "Carpool \u2014 WhatsApp notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "carpool-notify",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "node-webhook",
+      "name": "Carpool Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        340
+      ],
+      "webhookId": "carpool-notify"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"CARPOOL_WEBHOOK_SECRET\": \"PASTE-A-LONG-RANDOM-STRING-HERE\",\n  \"SUPABASE_URL\": \"https://wumekwxlehrivcxltvoq.supabase.co\",\n  \"SUPABASE_SERVICE_ROLE_KEY\": \"PASTE-SUPABASE-SERVICE-ROLE-JWT-HERE\",\n  \"WAHA_URL\": \"http://waha:3000\",\n  \"WAHA_SESSION\": \"default\",\n  \"WAHA_API_KEY\": \"PASTE-WAHA-API-KEY-OR-LEAVE-EMPTY\",\n  \"CARPOOL_PUBLIC_URL\": \"https://carpool-agent.vercel.app\"\n}",
+        "options": {}
+      },
+      "id": "node-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        340,
+        340
+      ],
+      "notes": "Edit this node's JSON to set all secrets and URLs in one place.\n\nGenerate the webhook secret with: openssl rand -hex 32\n\nThe Supabase service role key is the long JWT from project settings.\n\nWAHA_URL should be the URL your n8n container can reach WAHA at \u2014 usually http://waha:3000 if they're on the same Docker network.\n\nIf your WAHA instance has no auth, leave WAHA_API_KEY blank \u2014 the request node skips the header automatically."
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Verify HMAC-SHA256 signature from the carpool app.\nconst crypto = require('crypto');\n\nconst cfg = $('Config').first().json;\nconst secret = cfg.CARPOOL_WEBHOOK_SECRET;\nif (!secret || secret.startsWith('PASTE')) {\n  throw new Error('CARPOOL_WEBHOOK_SECRET is not set in the Config node');\n}\n\n// The webhook node with rawBody:true puts the raw payload bytes under\n// items[0].binary.data or items[0].json.body. Handle both shapes.\nconst inbound = $('Carpool Webhook').first().json;\nconst sig = (inbound.headers && inbound.headers['x-carpool-signature']) || '';\n\nlet rawBody = '';\nif (typeof inbound.body === 'string') {\n  rawBody = inbound.body;\n} else if (inbound.body) {\n  rawBody = JSON.stringify(inbound.body);\n}\n\nconst expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');\n\nlet valid = false;\ntry {\n  valid = sig.length > 0 && crypto.timingSafeEqual(\n    Buffer.from(sig, 'hex'),\n    Buffer.from(expected, 'hex')\n  );\n} catch (_e) {\n  valid = false;\n}\n\nif (!valid) {\n  return [{ json: { ok: false, reason: 'invalid_signature' } }];\n}\n\nconst parsed = typeof inbound.body === 'string'\n  ? JSON.parse(inbound.body)\n  : inbound.body;\n\nreturn [{\n  json: {\n    ok: true,\n    event: parsed.event,\n    payload: parsed.payload || {},\n    sent_at: parsed.sent_at\n  }\n}];\n"
+      },
+      "id": "node-hmac",
+      "name": "Verify HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-valid",
+      "name": "Signature Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        820,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, reason: \"invalid_signature\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "node-respond-401",
+      "name": "Respond 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, event: $json.event } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-200",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "c-r-created",
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "request.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "request.created"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "c-o-created",
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "offer.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "offer.created"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "c-b-created",
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "booking.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "booking.created"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "c-b-confirmed",
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "booking.confirmed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "booking.confirmed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "c-b-cancelled",
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "booking.cancelled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "booking.cancelled"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "node-switch",
+      "name": "Switch by event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1300,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.SUPABASE_URL }}/rest/v1/requests",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.payload.request_id }}"
+            },
+            {
+              "name": "select",
+              "value": "id,pickup_area,start_at,end_at,passenger_count,max_daily_rate,car_id,car:cars!requests_car_id_fkey(make,model,year,owner_id,owner:profiles!cars_owner_id_fkey(full_name,phone)),requester:profiles!requests_requester_id_fkey(full_name)"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-rc-fetch",
+      "name": "RC \u00b7 fetch request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Config').first().json;\nconst arr = $input.first().json;\nconst r = Array.isArray(arr) ? arr[0] : arr;\nif (!r) return [{ json: { skip: true, reason: 'request_not_found' } }];\nif (!r.car_id || !r.car || !r.car.owner) {\n  return [{ json: { skip: true, reason: 'not_direct_or_no_owner' } }];\n}\nconst phoneRaw = r.car.owner.phone || '';\nconst digits = phoneRaw.replace(/[^0-9]/g, '');\nif (!digits) return [{ json: { skip: true, reason: 'owner_no_phone' } }];\nconst intl = digits.startsWith('60') ? digits : ('60' + digits.replace(/^0/, ''));\n\nconst fmt = (iso) => new Date(iso).toLocaleString('en-MY', {\n  timeZone: 'Asia/Kuala_Lumpur',\n  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'\n});\n\nconst requesterName = r.requester?.full_name || 'A member';\nconst carName = `${r.car.make} ${r.car.model}${r.car.year ? ` (${r.car.year})` : ''}`;\nconst maxRate = r.max_daily_rate ? `RM ${Number(r.max_daily_rate).toFixed(2)}/day` : 'open';\n\nconst text = `\ud83d\ude97 *New direct request for your car*\n\nYour *${carName}* has been requested by *${requesterName}* for:\n\ud83d\udcc5 ${fmt(r.start_at)} \u2192 ${fmt(r.end_at)}\n\ud83d\udccd Pickup: ${r.pickup_area}\n\ud83d\udc65 ${r.passenger_count} passenger${r.passenger_count > 1 ? 's' : ''}\n\ud83d\udcb0 Max rate: ${maxRate}\n\nView & make an offer:\n${cfg.CARPOOL_PUBLIC_URL}/member/requests/${r.id}\n\nReply within 6h to keep the slot warm.`;\n\nreturn [{ json: { wa_id: `${intl}@c.us`, text, audience: 'owner', request_id: r.id } }];\n"
+      },
+      "id": "node-rc-compose",
+      "name": "RC \u00b7 compose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.WAHA_URL }}/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: $('Config').first().json.WAHA_SESSION || 'default', chatId: $json.wa_id, text: $json.text }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $('Config').first().json.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "node-rc-send",
+      "name": "RC \u00b7 send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.SUPABASE_URL }}/rest/v1/offers",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.payload.offer_id }}"
+            },
+            {
+              "name": "select",
+              "value": "id,daily_rate,deposit,notes,car:cars!offers_car_id_fkey(make,model,year),offerer:profiles!offers_offerer_id_fkey(full_name),request:requests!offers_request_id_fkey(id,pickup_area,start_at,end_at,requester:profiles!requests_requester_id_fkey(full_name,phone))"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-oc-fetch",
+      "name": "OC \u00b7 fetch offer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Config').first().json;\nconst arr = $input.first().json;\nconst o = Array.isArray(arr) ? arr[0] : arr;\nif (!o || !o.request || !o.request.requester) return [{ json: { skip: true } }];\n\nconst phoneRaw = o.request.requester.phone || '';\nconst digits = phoneRaw.replace(/[^0-9]/g, '');\nif (!digits) return [{ json: { skip: true, reason: 'requester_no_phone' } }];\nconst intl = digits.startsWith('60') ? digits : ('60' + digits.replace(/^0/, ''));\n\nconst carName = `${o.car.make} ${o.car.model}${o.car.year ? ` (${o.car.year})` : ''}`;\nconst offererName = o.offerer?.full_name || 'A member';\nconst note = (o.notes || '').trim();\nconst noteLine = note ? `\\n\ud83d\udcdd \"${note}\"` : '';\n\nconst text = `\ud83d\udce9 *New offer on your request*\n\n*${offererName}* offered their *${carName}* for your trip to ${o.request.pickup_area}.\n\ud83d\udcb0 RM ${Number(o.daily_rate).toFixed(2)}/day \u00b7 RM ${Number(o.deposit).toFixed(2)} deposit${noteLine}\n\nReview & accept:\n${cfg.CARPOOL_PUBLIC_URL}/member/requests/${o.request.id}`;\n\nreturn [{ json: { wa_id: `${intl}@c.us`, text, audience: 'requester', offer_id: o.id } }];\n"
+      },
+      "id": "node-oc-compose",
+      "name": "OC \u00b7 compose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.WAHA_URL }}/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: $('Config').first().json.WAHA_SESSION || 'default', chatId: $json.wa_id, text: $json.text }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $('Config').first().json.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "node-oc-send",
+      "name": "OC \u00b7 send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.SUPABASE_URL }}/rest/v1/bookings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.payload.booking_id }}"
+            },
+            {
+              "name": "select",
+              "value": "id,start_at,end_at,pickup_area,daily_rate,deposit,car:cars!bookings_car_id_fkey(make,model,year),owner:profiles!bookings_owner_id_fkey(full_name,phone),booker:profiles!bookings_booker_id_fkey(full_name,phone)"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-bc-fetch",
+      "name": "BC \u00b7 fetch booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Config').first().json;\nconst arr = $input.first().json;\nconst b = Array.isArray(arr) ? arr[0] : arr;\nif (!b || !b.owner) return [{ json: { skip: true } }];\n\nconst phoneRaw = b.owner.phone || '';\nconst digits = phoneRaw.replace(/[^0-9]/g, '');\nif (!digits) return [{ json: { skip: true, reason: 'owner_no_phone' } }];\nconst intl = digits.startsWith('60') ? digits : ('60' + digits.replace(/^0/, ''));\n\nconst carName = `${b.car.make} ${b.car.model}${b.car.year ? ` (${b.car.year})` : ''}`;\nconst bookerName = b.booker?.full_name || 'A member';\n\nconst text = `\u2705 *Your offer was accepted!*\n\n*${bookerName}* accepted your offer of the *${carName}*.\n\n\u23f3 Please confirm or decline within 6 hours, otherwise the booking releases automatically.\n\n${cfg.CARPOOL_PUBLIC_URL}/member/bookings/${b.id}`;\n\nreturn [{ json: { wa_id: `${intl}@c.us`, text, audience: 'owner', booking_id: b.id } }];\n"
+      },
+      "id": "node-bc-compose",
+      "name": "BC \u00b7 compose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.WAHA_URL }}/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: $('Config').first().json.WAHA_SESSION || 'default', chatId: $json.wa_id, text: $json.text }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $('Config').first().json.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "node-bc-send",
+      "name": "BC \u00b7 send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.SUPABASE_URL }}/rest/v1/bookings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.payload.booking_id }}"
+            },
+            {
+              "name": "select",
+              "value": "id,start_at,end_at,pickup_area,car:cars!bookings_car_id_fkey(make,model,year),owner:profiles!bookings_owner_id_fkey(full_name,phone),booker:profiles!bookings_booker_id_fkey(full_name,phone)"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-bcf-fetch",
+      "name": "BCF \u00b7 fetch booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Config').first().json;\nconst arr = $input.first().json;\nconst b = Array.isArray(arr) ? arr[0] : arr;\nif (!b || !b.booker) return [{ json: { skip: true } }];\n\nconst phoneRaw = b.booker.phone || '';\nconst digits = phoneRaw.replace(/[^0-9]/g, '');\nif (!digits) return [{ json: { skip: true, reason: 'booker_no_phone' } }];\nconst intl = digits.startsWith('60') ? digits : ('60' + digits.replace(/^0/, ''));\n\nconst carName = `${b.car.make} ${b.car.model}${b.car.year ? ` (${b.car.year})` : ''}`;\nconst ownerName = b.owner?.full_name || 'The owner';\nconst ownerPhone = b.owner?.phone || '\u2014';\n\nconst fmtDate = (iso) => new Date(iso).toLocaleString('en-MY', {\n  timeZone: 'Asia/Kuala_Lumpur',\n  day: 'numeric', month: 'short'\n});\n\nconst text = `\ud83c\udf89 *Booking confirmed!*\n\n*${ownerName}* confirmed your booking of the *${carName}* for ${fmtDate(b.start_at)}\u2013${fmtDate(b.end_at)}.\n\n\ud83d\ude97 Pickup: ${b.pickup_area}\n\ud83d\udc64 Owner contact: ${ownerPhone}\n\nYour customer info has been shared with the owner. Coordinate handover details directly.\n\n${cfg.CARPOOL_PUBLIC_URL}/member/bookings/${b.id}`;\n\nreturn [{ json: { wa_id: `${intl}@c.us`, text, audience: 'requester', booking_id: b.id } }];\n"
+      },
+      "id": "node-bcf-compose",
+      "name": "BCF \u00b7 compose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.WAHA_URL }}/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: $('Config').first().json.WAHA_SESSION || 'default', chatId: $json.wa_id, text: $json.text }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $('Config').first().json.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "node-bcf-send",
+      "name": "BCF \u00b7 send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.SUPABASE_URL }}/rest/v1/bookings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.payload.booking_id }}"
+            },
+            {
+              "name": "select",
+              "value": "id,start_at,end_at,cancel_reason,car:cars!bookings_car_id_fkey(make,model),owner:profiles!bookings_owner_id_fkey(full_name,phone),booker:profiles!bookings_booker_id_fkey(full_name,phone)"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-bcc-fetch",
+      "name": "BCC \u00b7 fetch booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Config').first().json;\nconst arr = $input.first().json;\nconst b = Array.isArray(arr) ? arr[0] : arr;\nif (!b) return [{ json: { skip: true } }];\n\nconst carName = `${b.car.make} ${b.car.model}`;\nconst reason = b.cancel_reason ? ` (reason: ${b.cancel_reason})` : '';\n\nconst out = [];\nfor (const role of ['owner', 'booker']) {\n  const p = b[role];\n  if (!p || !p.phone) continue;\n  const digits = p.phone.replace(/[^0-9]/g, '');\n  if (!digits) continue;\n  const intl = digits.startsWith('60') ? digits : ('60' + digits.replace(/^0/, ''));\n\n  const text = `\u274c *Booking cancelled*\n\nThe booking of the *${carName}* has been cancelled${reason}.\n\n${cfg.CARPOOL_PUBLIC_URL}/member/bookings/${b.id}`;\n\n  out.push({ json: { wa_id: `${intl}@c.us`, text, audience: role, booking_id: b.id } });\n}\nreturn out.length ? out : [{ json: { skip: true } }];\n"
+      },
+      "id": "node-bcc-compose",
+      "name": "BCC \u00b7 compose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.WAHA_URL }}/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: $('Config').first().json.WAHA_SESSION || 'default', chatId: $json.wa_id, text: $json.text }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $('Config').first().json.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "node-bcc-send",
+      "name": "BCC \u00b7 send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        580
+      ]
+    }
+  ],
+  "connections": {
+    "Carpool Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Verify HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify HMAC": {
+      "main": [
+        [
+          {
+            "node": "Signature Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature Valid?": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200": {
+      "main": [
+        [
+          {
+            "node": "Switch by event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by event": {
+      "main": [
+        [
+          {
+            "node": "RC \u00b7 fetch request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OC \u00b7 fetch offer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BC \u00b7 fetch booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BCF \u00b7 fetch booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BCC \u00b7 fetch booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RC \u00b7 fetch request": {
+      "main": [
+        [
+          {
+            "node": "RC \u00b7 compose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RC \u00b7 compose": {
+      "main": [
+        [
+          {
+            "node": "RC \u00b7 send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OC \u00b7 fetch offer": {
+      "main": [
+        [
+          {
+            "node": "OC \u00b7 compose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OC \u00b7 compose": {
+      "main": [
+        [
+          {
+            "node": "OC \u00b7 send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BC \u00b7 fetch booking": {
+      "main": [
+        [
+          {
+            "node": "BC \u00b7 compose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BC \u00b7 compose": {
+      "main": [
+        [
+          {
+            "node": "BC \u00b7 send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BCF \u00b7 fetch booking": {
+      "main": [
+        [
+          {
+            "node": "BCF \u00b7 compose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BCF \u00b7 compose": {
+      "main": [
+        [
+          {
+            "node": "BCF \u00b7 send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BCC \u00b7 fetch booking": {
+      "main": [
+        [
+          {
+            "node": "BCC \u00b7 compose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BCC \u00b7 compose": {
+      "main": [
+        [
+          {
+            "node": "BCC \u00b7 send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
