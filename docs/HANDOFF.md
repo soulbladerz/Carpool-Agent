@@ -24,14 +24,22 @@ live.
 
 ## 2. Secrets & shared values
 
-These are needed for any cross-system work. Treat as sensitive.
+**Never paste live secrets into this file — it lives in a PUBLIC repo.**
 
-- **API_INTEGRATION_KEY** (carpool REST API): `f33b53b7a12c6c9b3a568447d1afcfd4db145a32878c355558bc12e383003c42`
-- **CARPOOL_WEBHOOK_SECRET** (HMAC shared with n8n): `8fccb4f292f7ccb6ea60232a312a12d335538a4cc58017596dc3572685abaec5`
-- Webhook subscription id (in DB): `486e5f82-9be7-47a8-b63d-1fc7fff4aad8`
+Earlier revisions of this doc committed the real `API_INTEGRATION_KEY` and
+`CARPOOL_WEBHOOK_SECRET` (commit `eee1528`). They are considered compromised
+and MUST be rotated. Both values now live only in their respective consoles:
 
-The Supabase service role JWT and Vercel env vars are already set in their
-respective consoles; not pasted here.
+- **API_INTEGRATION_KEY** (carpool REST API): Vercel env var. Rotate there, then
+  update the n8n Config node and any webhook subscription registration.
+- **CARPOOL_WEBHOOK_SECRET** (HMAC shared with n8n): stored on the
+  `webhook_endpoints` row in Supabase and mirrored in the n8n Config node.
+  Rotate by replacing the subscription (DELETE + re-POST `/api/v1/webhooks`)
+  and updating n8n.
+- Webhook subscription id: look it up with `GET /api/v1/webhooks`.
+
+The Supabase service role JWT and Vercel env vars live only in their consoles —
+never paste them here.
 
 ---
 
@@ -248,7 +256,8 @@ node body changes.
 2. Confirm acap2's phone is set in DB:
    `select phone from profiles where email = 'acap2@gmail.com';`
    Should be `+60192535599`.
-3. Log in to https://carpool-agent.vercel.app as `acap@gmail.com` / `Test1234!`.
+3. Log in to https://carpool-agent.vercel.app as `acap@gmail.com` (test password
+   is in your password manager — do not commit it here).
 4. Marketplace → click "Request this car" on Toyota Vios.
 5. Fill form (any future date range, any test customer name/phone).
 6. Submit. WhatsApp should arrive at +60192535599 within 3 seconds.
@@ -270,7 +279,8 @@ WAHA. Check the RC · send WhatsApp node's HTTP response — common issues:
 
 ## 7. Test data state
 
-Test users (all verified, all password `Test1234!`):
+Test users (all verified; shared test password is in the password manager —
+not committed here, and should be changed since it leaked in commit `eee1528`):
 
 | Email                   | Role   | Notes                                              |
 |-------------------------|--------|----------------------------------------------------|
@@ -291,9 +301,9 @@ table. Safe to ignore or clean up if needed.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://wumekwxlehrivcxltvoq.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...  (legacy anon JWT)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...      (legacy service_role JWT)
-API_INTEGRATION_KEY=f33b53b7a12c6c9b3a568447d1afcfd4db145a32878c355558bc12e383003c42
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<legacy anon JWT — see Vercel>
+SUPABASE_SERVICE_ROLE_KEY=<legacy service_role JWT — see Vercel>
+API_INTEGRATION_KEY=<rotate after the eee1528 leak — see Vercel>
 ```
 
 Note: the project currently uses Supabase's **legacy JWT keys** rather than
