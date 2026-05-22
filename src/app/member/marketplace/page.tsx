@@ -145,8 +145,13 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c: any) => {
             const isMine = c.owner_id === profile.id;
+            const detailHref =
+              `/member/marketplace/${c.id}` +
+              (windowStart && windowEnd
+                ? `?from=${encodeURIComponent(windowStart.toISOString())}&to=${encodeURIComponent(windowEnd.toISOString())}`
+                : "");
             return (
-              <div key={c.id} className="card card-hover p-4 flex flex-col">
+              <Link key={c.id} href={detailHref} className="card card-hover p-4 flex flex-col">
                 {(c.photo_urls?.length ?? 0) > 0 && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.photo_urls[0]} alt="" className="h-36 w-full object-cover rounded mb-3" />
@@ -166,27 +171,12 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
                 <div className="mt-2 text-xs text-slate-500">
                   Service areas: {(c.service_areas ?? []).map((s: any) => s.area).join(", ") || "—"}
                 </div>
-                {c.notes && <p className="mt-2 text-sm text-slate-600">{c.notes}</p>}
-                <p className="mt-2 text-xs text-slate-500">Owner: {c.owner?.full_name ?? "—"}</p>
+                {c.notes && <p className="mt-2 text-sm text-slate-600 line-clamp-2">{c.notes}</p>}
 
-                <div className="mt-auto pt-3">
-                  {isMine ? (
-                    <span className="block text-center text-xs text-slate-500 py-2">Your car</span>
-                  ) : (
-                    <Link
-                      href={
-                        `/member/requests/new?car_id=${c.id}` +
-                        (windowStart && windowEnd
-                          ? `&from=${encodeURIComponent(windowStart.toISOString())}&to=${encodeURIComponent(windowEnd.toISOString())}`
-                          : "")
-                      }
-                      className="btn-primary w-full text-sm"
-                    >
-                      Request this car
-                    </Link>
-                  )}
+                <div className="mt-auto pt-3 text-sm font-medium text-brand">
+                  {isMine ? "Your car · View details →" : "View details →"}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
