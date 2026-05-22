@@ -39,11 +39,14 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
 
   const { data: member } = await admin.from("profiles").select("full_name").eq("id", tok.member_id).single();
 
+  const PHOTO_WEBHOOK = "https://n8n.xaltech.org/webhook/carpool-photos";
+
   let title = "";
   let rows: [string, string][] = [];
   let actions: ActionOption[] = [];
   let note = "";
   let photos: string[] = [];
+  let photoLink: string | null = null;
 
   if (tok.kind === "offer_decision") {
     const { data: o } = (await admin
@@ -57,6 +60,24 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
       .single()) as { data: any };
     if (!o) return <Notice title="Offer unavailable" body="This offer can no longer be actioned." />;
     photos = o.car?.photo_urls ?? [];
+
+    if (photos.length > 0) {
+      // Reuse a live photo token for this member+offer, else mint one.
+      const { data: existing } = await admin
+        .from("photo_token")
+        .select("token")
+        .eq("member_id", tok.member_id)
+        .eq("offer_id", tok.target_id)
+        .gt("expires_at", new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+      let pt = existing?.token as string | undefined;
+      if (!pt) {
+        pt = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+        await admin.from("photo_token").insert({ token: pt, member_id: tok.member_id, offer_id: tok.target_id });
+      }
+      photoLink = `${PHOTO_WEBHOOK}?t=${pt}`;
+    }
     title = "Offer on your request";
     rows = [
       ["Car", `${o.car?.make ?? ""} ${o.car?.model ?? ""}${o.car?.year ? ` (${o.car.year})` : ""}`.trim()],
@@ -111,11 +132,21 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
         <p className="text-xs text-slate-500">Acting as {member?.full_name ?? "you"}</p>
       </div>
       {photos.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {photos.slice(0, 6).map((url) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={url} src={url} alt="Car" className="h-20 w-full object-cover rounded border border-slate-200" />
-          ))}
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            {photos.slice(0, 6).map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={url} src={url} alt="Car" className="h-20 w-full object-cover rounded border border-slate-200" />
+            ))}
+          </div>
+          {photoLink && (
+            <a
+              href={photoLink}
+              className="block text-center text-sm rounded-md border border-slate-300 py-2 hover:bg-slate-50"
+            >
+              📷 Send these photos to my WhatsApp
+            </a>
+          )}
         </div>
       )}
       <div className="space-y-1 text-sm">
