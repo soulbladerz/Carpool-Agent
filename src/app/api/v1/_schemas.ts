@@ -33,6 +33,10 @@ export const acceptOfferSchema = z.object({
   acting_email: z.string().email()
 });
 
+export const rejectOfferSchema = z.object({
+  acting_email: z.string().email()
+});
+
 export const bookingActionSchema = z.object({
   acting_email: z.string().email(),
   reason: z.string().max(500).optional()
