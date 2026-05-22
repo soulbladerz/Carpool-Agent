@@ -33,34 +33,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-      <h1 className="text-2xl font-semibold mb-4">Log in</h1>
+    <div className="max-w-md mx-auto card p-6 sm:p-7">
+      <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
+      <p className="text-sm text-slate-500 mb-5">Log in to your Carpool account.</p>
       <form onSubmit={onSubmit} className="space-y-3">
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label className="label">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+            className="input"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
+          <label className="label">Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+            className="input"
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          disabled={loading}
-          className="w-full rounded bg-brand text-white py-2 disabled:opacity-60 hover:bg-brand-dark"
-        >
+        <button disabled={loading} className="btn-primary w-full py-2.5">
           {loading ? "Logging in…" : "Log in"}
         </button>
       </form>

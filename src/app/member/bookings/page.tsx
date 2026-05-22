@@ -50,9 +50,9 @@ export default async function BookingsPage() {
         {!items.length ? (
           <p className="text-sm text-slate-500">None.</p>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-left">
+              <thead className="bg-slate-50 text-left">
                 <tr>
                   <th className="p-3">Car</th>
                   <th className="p-3">Pickup</th>

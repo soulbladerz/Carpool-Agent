@@ -85,17 +85,17 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
         </Link>
       </div>
 
-      <form className="grid sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-white p-4 rounded-lg border border-slate-200">
+      <form className="grid sm:grid-cols-3 lg:grid-cols-6 gap-2 card p-4">
         <input
           name="area"
           placeholder="Area (e.g. KL)"
           defaultValue={area ?? ""}
-          className="rounded border border-slate-300 px-3 py-2 text-sm"
+          className="input"
         />
         <select
           name="type"
           defaultValue={type ?? ""}
-          className="rounded border border-slate-300 px-3 py-2 text-sm"
+          className="input"
         >
           <option value="">Any type</option>
           {["Sedan", "SUV", "Hatchback", "Van", "Pickup", "Luxury", "Other"].map((t) => (
@@ -107,7 +107,7 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
           type="number"
           placeholder="Max rate (RM)"
           defaultValue={max ?? ""}
-          className="rounded border border-slate-300 px-3 py-2 text-sm"
+          className="input"
         />
         <div className="flex flex-col">
           <label className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Available from</label>
@@ -115,7 +115,7 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
             name="from"
             type="datetime-local"
             defaultValue={from ?? ""}
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className="input"
           />
         </div>
         <div className="flex flex-col">
@@ -124,10 +124,10 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
             name="to"
             type="datetime-local"
             defaultValue={to ?? ""}
-            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
+            className="input"
           />
         </div>
-        <button className="rounded bg-brand text-white text-sm hover:bg-brand-dark">Filter</button>
+        <button className="btn-primary text-sm">Filter</button>
       </form>
 
       {windowError && <p className="text-amber-700 text-sm">{windowError}</p>}
@@ -146,14 +146,17 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
           {filtered.map((c: any) => {
             const isMine = c.owner_id === profile.id;
             return (
-              <div key={c.id} className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm flex flex-col">
+              <div key={c.id} className="card card-hover p-4 flex flex-col">
                 {(c.photo_urls?.length ?? 0) > 0 && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.photo_urls[0]} alt="" className="h-36 w-full object-cover rounded mb-3" />
                 )}
-                <h3 className="font-semibold">
-                  {c.make} {c.model} {c.year ? `(${c.year})` : ""}
-                </h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold">
+                    {c.make} {c.model} {c.year ? `(${c.year})` : ""}
+                  </h3>
+                  <span className="badge-green shrink-0"><span className="dot bg-brand-500" /> Available</span>
+                </div>
                 <p className="text-sm text-slate-500">{c.car_type}</p>
 
                 <dl className="mt-3 text-sm grid grid-cols-2 gap-y-1">
@@ -177,7 +180,7 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
                           ? `&from=${encodeURIComponent(windowStart.toISOString())}&to=${encodeURIComponent(windowEnd.toISOString())}`
                           : "")
                       }
-                      className="block w-full text-center rounded bg-brand text-white text-sm py-2 hover:bg-brand-dark"
+                      className="btn-primary w-full text-sm"
                     >
                       Request this car
                     </Link>

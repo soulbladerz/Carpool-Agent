@@ -46,9 +46,7 @@ export default async function MyRequests() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Requests</h1>
-        <Link href="/member/requests/new" className="rounded bg-brand text-white px-4 py-2 hover:bg-brand-dark">
-          + New request
-        </Link>
+        <Link href="/member/requests/new" className="btn-primary">+ New request</Link>
       </div>
 
       <section className="space-y-3">
@@ -58,9 +56,9 @@ export default async function MyRequests() {
             Nothing here yet. When another member requests one of your specific cars, it will appear here.
           </p>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-left">
+              <thead className="bg-slate-50 text-left">
                 <tr>
                   <th className="p-3">Car</th>
                   <th className="p-3">From</th>
@@ -105,9 +103,9 @@ export default async function MyRequests() {
         {!myList.length ? (
           <p className="text-sm text-slate-500">No requests posted yet.</p>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-left">
+              <thead className="bg-slate-50 text-left">
                 <tr>
                   <th className="p-3">Pickup</th>
                   <th className="p-3">Type</th>

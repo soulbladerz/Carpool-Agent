@@ -39,8 +39,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-      <h1 className="text-2xl font-semibold mb-2">Create your account</h1>
+    <div className="max-w-md mx-auto card p-6 sm:p-7">
+      <h1 className="text-2xl font-bold mb-2">Create your account</h1>
       <p className="text-sm text-slate-600 mb-4">
         Every member can list cars and post customer requests. Admins verify new members.
       </p>
@@ -50,10 +50,7 @@ export default function SignupPage() {
         <Field label="Phone (for other members to reach you)" value={phone} onChange={setPhone} />
         <Field label="Password" type="password" value={password} onChange={setPassword} required minLength={8} />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          disabled={loading}
-          className="w-full rounded bg-brand text-white py-2 disabled:opacity-60 hover:bg-brand-dark"
-        >
+        <button disabled={loading} className="btn-primary w-full py-2.5">
           {loading ? "Creating…" : "Sign up"}
         </button>
       </form>
@@ -81,14 +78,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="label">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
         minLength={minLength}
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+        className="input"
       />
     </div>
   );

@@ -32,24 +32,24 @@ export default async function OpenRequestsMarketplace({ searchParams }: { search
         </Link>
       </div>
 
-      <form className="grid sm:grid-cols-3 gap-2 bg-white p-4 rounded-lg border border-slate-200">
+      <form className="grid sm:grid-cols-3 gap-2 card p-4">
         <input
           name="area"
           placeholder="Pickup area"
           defaultValue={area ?? ""}
-          className="rounded border border-slate-300 px-3 py-2 text-sm"
+          className="input"
         />
         <select
           name="type"
           defaultValue={type ?? ""}
-          className="rounded border border-slate-300 px-3 py-2 text-sm"
+          className="input"
         >
           <option value="">Any type</option>
           {["Sedan", "SUV", "Hatchback", "Van", "Pickup", "Luxury", "Other"].map((t) => (
             <option key={t}>{t}</option>
           ))}
         </select>
-        <button className="rounded bg-brand text-white text-sm hover:bg-brand-dark">Filter</button>
+        <button className="btn-primary text-sm">Filter</button>
       </form>
 
       {error && <p className="text-red-600 text-sm">{error.message}</p>}
@@ -59,7 +59,7 @@ export default async function OpenRequestsMarketplace({ searchParams }: { search
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {requests.map((r: any) => (
-            <div key={r.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+            <div key={r.id} className="card card-hover p-4">
               {r.car_id && (r.car?.photo_urls?.length ?? 0) > 0 && (
                 <div className="flex items-center gap-2 mb-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -87,7 +87,7 @@ export default async function OpenRequestsMarketplace({ searchParams }: { search
               <div className="mt-3">
                 <Link
                   href={`/member/requests/${r.id}`}
-                  className="inline-block rounded bg-brand text-white text-sm px-3 py-2 hover:bg-brand-dark"
+                  className="btn-primary text-sm"
                 >
                   Submit offer
                 </Link>

@@ -23,9 +23,7 @@ export default async function MyCarsPage() {
             </p>
           )}
         </div>
-        <Link href="/member/cars/new" className="rounded bg-brand text-white px-4 py-2 hover:bg-brand-dark">
-          + Add car
-        </Link>
+        <Link href="/member/cars/new" className="btn-primary">+ Add car</Link>
       </div>
 
       {!cars?.length ? (
@@ -33,7 +31,7 @@ export default async function MyCarsPage() {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {cars.map((c) => (
-            <div key={c.id} className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+            <div key={c.id} className="card p-4">
               {(c.photo_urls?.length ?? 0) > 0 && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={c.photo_urls[0]} alt="" className="h-36 w-full object-cover rounded mb-3" />

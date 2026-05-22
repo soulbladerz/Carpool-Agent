@@ -105,7 +105,7 @@ export default function CarForm({ initial }: { initial?: FormState }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3 bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+    <form onSubmit={onSubmit} className="space-y-4 card p-5">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Make" value={form.make} onChange={(v) => update("make", v)} required />
         <Field label="Model" value={form.model} onChange={(v) => update("model", v)} required />
@@ -116,11 +116,11 @@ export default function CarForm({ initial }: { initial?: FormState }) {
           onChange={(v) => update("year", v === "" ? "" : Number(v))}
         />
         <div>
-          <label className="block text-sm font-medium mb-1">Car type</label>
+          <label className="label">Car type</label>
           <select
             value={form.car_type}
             onChange={(e) => update("car_type", e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+            className="input"
           >
             {CAR_TYPES.map((t) => <option key={t}>{t}</option>)}
           </select>
@@ -147,20 +147,17 @@ export default function CarForm({ initial }: { initial?: FormState }) {
         onChange={(v) => update("areas", v)}
       />
       <div>
-        <label className="block text-sm font-medium mb-1">Notes</label>
+        <label className="label">Notes</label>
         <textarea
           value={form.notes}
           onChange={(e) => update("notes", e.target.value)}
           rows={3}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        disabled={loading}
-        className="w-full rounded bg-brand text-white py-2 disabled:opacity-60 hover:bg-brand-dark"
-      >
+      <button disabled={loading} className="btn-primary w-full py-2.5">
         {loading ? "Saving…" : form.id ? "Save changes" : "Create car"}
       </button>
     </form>
@@ -188,7 +185,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+        className="input"
       />
     </div>
   );

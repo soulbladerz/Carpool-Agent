@@ -56,7 +56,7 @@ export default async function MemberDashboard() {
         />
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg p-5">
+      <div className="card p-5">
         <h2 className="font-semibold mb-2">Get started</h2>
         <ul className="text-sm text-slate-600 space-y-1 list-disc pl-5">
           <li><Link href="/member/cars/new" className="text-brand hover:underline">Add a car</Link> so other members can request it.</li>
@@ -71,13 +71,10 @@ export default async function MemberDashboard() {
 
 function Tile({ href, title, count, cta }: { href: string; title: string; count: number; cta: string }) {
   return (
-    <Link
-      href={href}
-      className="block bg-white border border-slate-200 rounded-lg p-5 hover:border-brand"
-    >
+    <Link href={href} className="card card-hover p-5 block">
       <div className="text-sm text-slate-500">{title}</div>
-      <div className="text-3xl font-semibold mt-2">{count}</div>
-      <div className="text-xs text-brand mt-3">{cta} &rarr;</div>
+      <div className="text-4xl font-display font-bold mt-2 text-brand">{count}</div>
+      <div className="text-xs font-medium text-slate-500 mt-3">{cta} &rarr;</div>
     </Link>
   );
 }
