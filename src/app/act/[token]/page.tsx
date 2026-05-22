@@ -4,7 +4,9 @@ import ActButtons, { type ActionOption } from "./act-buttons";
 
 // No-login action page. GET only renders context (safe against link-preview
 // prefetch); the action fires on a button click (POST /api/act/[token]).
-// Buttons shown adapt to the target's current status.
+const PHOTO_WEBHOOK = "https://n8n.xaltech.org/webhook/carpool-photos";
+const SITE = "https://carpool-agent.vercel.app";
+
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div className="max-w-md mx-auto">
@@ -39,45 +41,26 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
 
   const { data: member } = await admin.from("profiles").select("full_name").eq("id", tok.member_id).single();
 
-  const PHOTO_WEBHOOK = "https://n8n.xaltech.org/webhook/carpool-photos";
-
   let title = "";
   let rows: [string, string][] = [];
   let actions: ActionOption[] = [];
   let note = "";
   let photos: string[] = [];
-  let photoLink: string | null = null;
+  let carId: string | null = null;
 
   if (tok.kind === "offer_decision") {
     const { data: o } = (await admin
       .from("offers")
       .select(
-        "status, daily_rate, deposit, car:cars(make, model, year, photo_urls), " +
+        "status, daily_rate, deposit, car_id, car:cars(make, model, year, photo_urls), " +
           "offerer:profiles!offers_offerer_id_fkey(full_name), " +
           "request:requests!offers_request_id_fkey(pickup_area)"
       )
       .eq("id", tok.target_id)
       .single()) as { data: any };
     if (!o) return <Notice title="Offer unavailable" body="This offer can no longer be actioned." />;
+    carId = o.car_id ?? null;
     photos = o.car?.photo_urls ?? [];
-
-    if (photos.length > 0) {
-      // Reuse a live photo token for this member+offer, else mint one.
-      const { data: existing } = await admin
-        .from("photo_token")
-        .select("token")
-        .eq("member_id", tok.member_id)
-        .eq("offer_id", tok.target_id)
-        .gt("expires_at", new Date().toISOString())
-        .limit(1)
-        .maybeSingle();
-      let pt = existing?.token as string | undefined;
-      if (!pt) {
-        pt = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-        await admin.from("photo_token").insert({ token: pt, member_id: tok.member_id, offer_id: tok.target_id });
-      }
-      photoLink = `${PHOTO_WEBHOOK}?t=${pt}`;
-    }
     title = "Offer on your request";
     rows = [
       ["Car", `${o.car?.make ?? ""} ${o.car?.model ?? ""}${o.car?.year ? ` (${o.car.year})` : ""}`.trim()],
@@ -98,12 +81,13 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
     const { data: b } = (await admin
       .from("bookings")
       .select(
-        "status, start_at, end_at, pickup_area, daily_rate, car:cars(make, model, year, photo_urls), " +
+        "status, start_at, end_at, pickup_area, daily_rate, car_id, car:cars(make, model, year, photo_urls), " +
           "booker:profiles!bookings_booker_id_fkey(full_name)"
       )
       .eq("id", tok.target_id)
       .single()) as { data: any };
     if (!b) return <Notice title="Booking unavailable" body="This booking can no longer be actioned." />;
+    carId = b.car_id ?? null;
     photos = b.car?.photo_urls ?? [];
     title = b.status === "confirmed" ? "Your booking" : "Confirm booking";
     rows = [
@@ -125,12 +109,35 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
     }
   }
 
+  // Photo sharing (offer + booking): reuse-or-mint a car-scoped token for the
+  // WhatsApp send, plus a public shareable gallery link.
+  let sendLink: string | null = null;
+  let galleryLink: string | null = null;
+  if (photos.length > 0 && carId) {
+    galleryLink = `${SITE}/car/${carId}/photos`;
+    const { data: existing } = await admin
+      .from("photo_token")
+      .select("token")
+      .eq("member_id", tok.member_id)
+      .eq("car_id", carId)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+    let pt = existing?.token as string | undefined;
+    if (!pt) {
+      pt = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+      await admin.from("photo_token").insert({ token: pt, member_id: tok.member_id, car_id: carId });
+    }
+    sendLink = `${PHOTO_WEBHOOK}?t=${pt}`;
+  }
+
   return (
     <Card>
       <div>
         <h1 className="text-lg font-semibold">{title}</h1>
         <p className="text-xs text-slate-500">Acting as {member?.full_name ?? "you"}</p>
       </div>
+
       {photos.length > 0 && (
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-2">
@@ -139,16 +146,24 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
               <img key={url} src={url} alt="Car" className="h-20 w-full object-cover rounded border border-slate-200" />
             ))}
           </div>
-          {photoLink && (
+          {sendLink && (
+            <a href={sendLink} className="block text-center text-sm rounded-md border border-slate-300 py-2 hover:bg-slate-50">
+              📷 Send these photos to my WhatsApp
+            </a>
+          )}
+          {galleryLink && (
             <a
-              href={photoLink}
+              href={galleryLink}
+              target="_blank"
+              rel="noreferrer"
               className="block text-center text-sm rounded-md border border-slate-300 py-2 hover:bg-slate-50"
             >
-              📷 Send these photos to my WhatsApp
+              🔗 Shareable photo link (open / forward)
             </a>
           )}
         </div>
       )}
+
       <div className="space-y-1 text-sm">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4">

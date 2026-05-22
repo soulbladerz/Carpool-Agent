@@ -28,7 +28,7 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
   let query = supabase
     .from("cars")
     .select(
-      "id, owner_id, make, model, year, car_type, daily_rate, deposit, status, notes, " +
+      "id, owner_id, make, model, year, car_type, daily_rate, deposit, status, notes, photo_urls, " +
       "service_areas(area), owner:profiles!cars_owner_id_fkey(full_name, phone, is_verified)"
     )
     .eq("status", "available")
@@ -147,6 +147,10 @@ export default async function Marketplace({ searchParams }: { searchParams: Sear
             const isMine = c.owner_id === profile.id;
             return (
               <div key={c.id} className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm flex flex-col">
+                {(c.photo_urls?.length ?? 0) > 0 && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.photo_urls[0]} alt="" className="h-36 w-full object-cover rounded mb-3" />
+                )}
                 <h3 className="font-semibold">
                   {c.make} {c.model} {c.year ? `(${c.year})` : ""}
                 </h3>

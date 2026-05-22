@@ -8,7 +8,7 @@ export default async function MyCarsPage() {
 
   const { data: cars } = await supabase
     .from("cars")
-    .select("id, make, model, year, car_type, daily_rate, deposit, status, service_areas(area)")
+    .select("id, make, model, year, car_type, daily_rate, deposit, status, photo_urls, service_areas(area)")
     .eq("owner_id", profile.id)
     .order("created_at", { ascending: false });
 
@@ -34,6 +34,10 @@ export default async function MyCarsPage() {
         <div className="grid md:grid-cols-2 gap-4">
           {cars.map((c) => (
             <div key={c.id} className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+              {(c.photo_urls?.length ?? 0) > 0 && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={c.photo_urls[0]} alt="" className="h-36 w-full object-cover rounded mb-3" />
+              )}
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold">
