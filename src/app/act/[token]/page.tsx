@@ -43,18 +43,20 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
   let rows: [string, string][] = [];
   let actions: ActionOption[] = [];
   let note = "";
+  let photos: string[] = [];
 
   if (tok.kind === "offer_decision") {
     const { data: o } = (await admin
       .from("offers")
       .select(
-        "status, daily_rate, deposit, car:cars(make, model, year), " +
+        "status, daily_rate, deposit, car:cars(make, model, year, photo_urls), " +
           "offerer:profiles!offers_offerer_id_fkey(full_name), " +
           "request:requests!offers_request_id_fkey(pickup_area)"
       )
       .eq("id", tok.target_id)
       .single()) as { data: any };
     if (!o) return <Notice title="Offer unavailable" body="This offer can no longer be actioned." />;
+    photos = o.car?.photo_urls ?? [];
     title = "Offer on your request";
     rows = [
       ["Car", `${o.car?.make ?? ""} ${o.car?.model ?? ""}${o.car?.year ? ` (${o.car.year})` : ""}`.trim()],
@@ -75,12 +77,13 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
     const { data: b } = (await admin
       .from("bookings")
       .select(
-        "status, start_at, end_at, pickup_area, daily_rate, car:cars(make, model, year), " +
+        "status, start_at, end_at, pickup_area, daily_rate, car:cars(make, model, year, photo_urls), " +
           "booker:profiles!bookings_booker_id_fkey(full_name)"
       )
       .eq("id", tok.target_id)
       .single()) as { data: any };
     if (!b) return <Notice title="Booking unavailable" body="This booking can no longer be actioned." />;
+    photos = b.car?.photo_urls ?? [];
     title = b.status === "confirmed" ? "Your booking" : "Confirm booking";
     rows = [
       ["Car", `${b.car?.make ?? ""} ${b.car?.model ?? ""}${b.car?.year ? ` (${b.car.year})` : ""}`.trim()],
@@ -107,6 +110,14 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
         <h1 className="text-lg font-semibold">{title}</h1>
         <p className="text-xs text-slate-500">Acting as {member?.full_name ?? "you"}</p>
       </div>
+      {photos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {photos.slice(0, 6).map((url) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={url} src={url} alt="Car" className="h-20 w-full object-cover rounded border border-slate-200" />
+          ))}
+        </div>
+      )}
       <div className="space-y-1 text-sm">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4">
