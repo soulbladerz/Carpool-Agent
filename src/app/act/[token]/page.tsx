@@ -48,7 +48,38 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
   let photos: string[] = [];
   let carId: string | null = null;
 
-  if (tok.kind === "offer_decision") {
+  if (tok.kind === "offer_create") {
+    const { data: r } = (await admin
+      .from("requests")
+      .select(
+        "status, pickup_area, start_at, end_at, passenger_count, max_daily_rate, car_id, " +
+          "requester:profiles!requests_requester_id_fkey(full_name), " +
+          "car:cars(make, model, year, photo_urls, daily_rate, deposit, owner_id)"
+      )
+      .eq("id", tok.target_id)
+      .single()) as { data: any };
+    if (!r) return <Notice title="Request unavailable" body="This request can no longer be actioned." />;
+    carId = r.car_id ?? null;
+    photos = r.car?.photo_urls ?? [];
+    const carName = `${r.car?.make ?? ""} ${r.car?.model ?? ""}${r.car?.year ? ` (${r.car.year})` : ""}`.trim();
+    title = "Direct request for your car";
+    rows = [
+      ["Requester", r.requester?.full_name ?? "A member"],
+      ["Pickup", r.pickup_area ?? "—"],
+      ["Dates", `${new Date(r.start_at).toLocaleDateString()} → ${new Date(r.end_at).toLocaleDateString()}`],
+      ["Passengers", String(r.passenger_count ?? "—")],
+      ["Your rate", `${formatMYR(r.car?.daily_rate)}/day · ${formatMYR(r.car?.deposit)} deposit`],
+      ...(r.max_daily_rate != null ? ([["Their max", `${formatMYR(r.max_daily_rate)}/day`]] as [string, string][]) : [])
+    ];
+    if (r.status === "open") {
+      actions = [
+        { key: "make_offer", label: `Offer ${carName || "my car"}`, tone: "pos" },
+        { key: "decline", label: "Decline", tone: "neg" }
+      ];
+    } else {
+      note = `This request is ${r.status}.`;
+    }
+  } else if (tok.kind === "offer_decision") {
     const { data: o } = (await admin
       .from("offers")
       .select(
@@ -113,7 +144,7 @@ export default async function ActPage({ params }: { params: Promise<{ token: str
   // WhatsApp send, plus a public shareable gallery link.
   let sendLink: string | null = null;
   let galleryLink: string | null = null;
-  if (photos.length > 0 && carId) {
+  if (photos.length > 0 && carId && tok.kind !== "offer_create") {
     galleryLink = `${SITE}/car/${carId}/photos`;
     const { data: existing } = await admin
       .from("photo_token")
