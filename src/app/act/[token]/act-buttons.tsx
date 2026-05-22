@@ -2,16 +2,13 @@
 
 import { useState } from "react";
 
+export type ActionOption = { key: string; label: string; tone: "pos" | "neg" };
+
 type Status = "idle" | "loading" | "done" | "error";
 
-export default function ActButtons({ token, kind }: { token: string; kind: string }) {
+export default function ActButtons({ token, actions }: { token: string; actions: ActionOption[] }) {
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
-
-  const positive = kind === "offer_decision" ? "accept" : "confirm";
-  const negative = kind === "offer_decision" ? "reject" : "decline";
-  const posLabel = kind === "offer_decision" ? "Accept" : "Confirm";
-  const negLabel = kind === "offer_decision" ? "Reject" : "Decline";
 
   async function act(action: string) {
     setStatus("loading");
@@ -43,20 +40,19 @@ export default function ActButtons({ token, kind }: { token: string; kind: strin
     <div className="space-y-2">
       {status === "error" && <p className="text-sm text-red-600">{message}</p>}
       <div className="flex gap-2">
-        <button
-          disabled={status === "loading"}
-          onClick={() => act(positive)}
-          className="flex-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 text-sm font-medium disabled:opacity-50"
-        >
-          {posLabel}
-        </button>
-        <button
-          disabled={status === "loading"}
-          onClick={() => act(negative)}
-          className="flex-1 rounded-md bg-red-600 hover:bg-red-700 text-white py-2.5 text-sm font-medium disabled:opacity-50"
-        >
-          {negLabel}
-        </button>
+        {actions.map((a) => (
+          <button
+            key={a.key}
+            disabled={status === "loading"}
+            onClick={() => act(a.key)}
+            className={
+              "flex-1 rounded-md text-white py-2.5 text-sm font-medium disabled:opacity-50 " +
+              (a.tone === "pos" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700")
+            }
+          >
+            {a.label}
+          </button>
+        ))}
       </div>
       {status === "loading" && <p className="text-xs text-slate-500">Working…</p>}
     </div>
