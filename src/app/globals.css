@@ -13,7 +13,7 @@
     background-image:
       radial-gradient(60rem 60rem at 110% -10%, rgba(15, 118, 110, 0.06), transparent 60%),
       radial-gradient(50rem 50rem at -10% 0%, rgba(234, 123, 41, 0.05), transparent 55%);
-    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
   h1, h2, h3 {
     @apply font-display tracking-tight;

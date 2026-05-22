@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/sign-out-button";
 import SiteNav, { type NavItem } from "@/components/site-nav";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -77,6 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <footer className="hidden md:block text-xs text-slate-400 text-center py-5">
           Carpool Agent — source cars from the network when yours are full.
         </footer>
+        <SpeedInsights />
       </body>
     </html>
   );
