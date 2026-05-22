@@ -11,8 +11,8 @@ export default async function OpenRequestsMarketplace({ searchParams }: { search
   let query = supabase
     .from("requests")
     .select(
-      "id, requester_id, car_type, pickup_area, start_at, end_at, passenger_count, max_daily_rate, notes, expires_at, created_at, " +
-      "requester:profiles!requests_requester_id_fkey(full_name)"
+      "id, requester_id, car_id, car_type, pickup_area, start_at, end_at, passenger_count, max_daily_rate, notes, expires_at, created_at, " +
+      "requester:profiles!requests_requester_id_fkey(full_name), car:cars(make, model, photo_urls)"
     )
     .eq("status", "open")
     .order("created_at", { ascending: false });
@@ -60,6 +60,15 @@ export default async function OpenRequestsMarketplace({ searchParams }: { search
         <div className="grid md:grid-cols-2 gap-4">
           {requests.map((r: any) => (
             <div key={r.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+              {r.car_id && (r.car?.photo_urls?.length ?? 0) > 0 && (
+                <div className="flex items-center gap-2 mb-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.car.photo_urls[0]} alt="" className="h-12 w-16 object-cover rounded border border-slate-200" />
+                  <span className="text-xs rounded-full px-2 py-0.5 bg-amber-100 text-amber-800">
+                    📸 Direct request for your {r.car.make} {r.car.model}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold">{r.car_type ?? "Any type"} &middot; {r.pickup_area}</h3>

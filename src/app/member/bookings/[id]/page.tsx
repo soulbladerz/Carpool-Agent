@@ -10,7 +10,7 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
   const { data } = await supabase
     .from("bookings")
     .select(
-      "*, car:cars(make, model, year, car_type, plate), " +
+      "*, car:cars(make, model, year, car_type, plate, photo_urls), " +
       "owner:profiles!bookings_owner_id_fkey(full_name, phone), " +
       "booker:profiles!bookings_booker_id_fkey(full_name, phone)"
     )
@@ -41,6 +41,14 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
 
       <section className="bg-white border border-slate-200 rounded-lg p-5 space-y-2 text-sm">
         <h2 className="font-semibold">Car &amp; trip</h2>
+        {(booking.car?.photo_urls?.length ?? 0) > 0 && (
+          <div className="grid grid-cols-3 gap-2 pb-2">
+            {booking.car.photo_urls.slice(0, 6).map((url: string) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={url} src={url} alt="Car" className="h-20 w-full object-cover rounded border border-slate-200" />
+            ))}
+          </div>
+        )}
         <dl className="grid grid-cols-2 gap-y-1">
           <dt className="text-slate-500">Car</dt>
           <dd>{booking.car?.make} {booking.car?.model} {booking.car?.year ? `(${booking.car.year})` : ""}</dd>
